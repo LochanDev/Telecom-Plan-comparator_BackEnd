@@ -2,7 +2,9 @@ package com.telecom.controller;
 
 import com.telecom.model.dto.ApiResponse;
 import com.telecom.model.dto.PlanDto;
+import com.telecom.model.dto.RecommendationDto;
 import com.telecom.service.PlanService;
+import com.telecom.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -22,6 +25,7 @@ import java.util.List;
 public class PlanController {
 
     private final PlanService planService;
+    private final RecommendationService recommendationService;
 
     // ─── GET All Plans ─────────────────────────────────────────────
 
@@ -73,6 +77,28 @@ public class PlanController {
     @Operation(summary = "List all active providers")
     public ResponseEntity<ApiResponse<List<String>>> getProviders() {
         return ResponseEntity.ok(ApiResponse.success(planService.getAllProviders()));
+    }
+
+    // ─── "Best Plan for My Job" Recommender ─────────────────────────
+
+    @GetMapping("/occupations")
+    @Operation(summary = "List supported occupation profiles for the recommender")
+    public ResponseEntity<ApiResponse<List<RecommendationDto.OccupationOption>>> getOccupations() {
+        return ResponseEntity.ok(ApiResponse.success(recommendationService.getOccupationOptions()));
+    }
+
+    @GetMapping("/recommend")
+    @Operation(summary = "Get the best plan recommendation for a given occupation")
+    public ResponseEntity<ApiResponse<RecommendationDto.Response>> recommend(
+            @RequestParam RecommendationDto.Occupation occupation,
+            @RequestParam(required = false) BigDecimal maxBudget) {
+
+        RecommendationDto.Request request = RecommendationDto.Request.builder()
+                .occupation(occupation)
+                .maxBudget(maxBudget)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(recommendationService.recommend(request)));
     }
 
     // ─── Create Plan (Admin) ───────────────────────────────────────
